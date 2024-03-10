@@ -14,6 +14,8 @@ WBStartup
 
 DEFTYPE.w
 
+DELIMITER$=";"
+
 AMIGA
 
 NPrint "Listing whdload slaves..."
@@ -40,10 +42,11 @@ NEWTYPE.Slave
     path$
 End NEWTYPE
 
-Dim List slaves.Slave(100)
+Dim List slaves2.Slave(100)
+
 
 Statement listdir{dir$,curdir$}
-  SHARED myfib
+  SHARED myfib, slaves2, DELIMITER$
   USEPATH myfib
   lock.l=Lock_(&dir$,-2)                   ;lock is dos system to access files
   countGame.b=0
@@ -55,9 +58,9 @@ Statement listdir{dir$,curdir$}
             If Instr(filename$,".Slav")>0  OR  Instr(filename$,".slav")>0
                 name$=curdir$
                 If countGame > 0
-                    name$=name$ +" ("+  filename$ +")"
+                    name$=name$ +" ("+  StripTrail$(filename$,Asc(" ")) +")"
                 EndIf
-                NPrint name$,";",dir$,"/",filename$
+                NPrint name$,DELIMITER$,dir$,"/",filename$
                 countGame+1
             EndIf
         EndIf
@@ -70,24 +73,47 @@ Statement listdir{dir$,curdir$}
   UnLock_ lock
 End Statement
 
- If WriteFile(0,"slaves.data") ;
+If WriteFile(0,"slaves.data") ;
     FileOutput 0
     listdir {"Games:Games/_Course",""}
     CloseFile 0
 EndIf
 
-;                If AddItem(slaves())
-;                    slaves()\name=name$
-;                    slaves()\path=dir$+"/"+filename$
-;                EndIf
 
-;USEPATH slaves() 
-;ResetList slaves()
-;While Nextltem(slaves())
-;    NPrint "===="
-;    NPrint " Name: ",name$
-;    NPrint " Path: ",dir$+"/"+filename$
-;Wend
+If OpenFile(0,"slaves.data") ;
+    FileOutput 0
+    listdir {"Games:Games/_Course",""}
+    CloseFile 0
+    DefaultOutput
+EndIf
+
+
+Dim List slaves.Slave(100)
+
+If ReadFile (0,"slaves.data")
+    ; *** Read sequential file
+    FileInput 0
+    While NOT Eof(O)
+        If AddItem(slaves())
+            l$=Edit$(128)
+            delimiterPos=Instr(l$,DELIMITER$)
+            NPrint "= ",l$
+            slaves()\name=Left$(l$,delimiterPos-1)
+            slaves()\path=UnRight$(l$,delimiterPos)
+        EndIf
+    Wend
+    ; *** Close sequential file
+    CloseFile 0
+    DefaultInput
+EndIf
+
+USEPATH slaves() 
+ResetList slaves()
+While NextItem(slaves())
+    NPrint "===="
+    NPrint " Name: ",\name
+    NPrint " Path: ",\path
+Wend
 
 ;End
 
