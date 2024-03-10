@@ -16,9 +16,9 @@ DEFTYPE.w
 
 DELIMITER$=";"
 
-AMIGA
+currentScanDir$="RAM:"
 
-NPrint "Listing whdload slaves..."
+AMIGA
 
 NEWTYPE.FileInfoBlock
    _DiskKey.l
@@ -73,48 +73,71 @@ Statement listdir{dir$,curdir$}
   UnLock_ lock
 End Statement
 
-If WriteFile(0,"slaves.data") ;
-    FileOutput 0
-    listdir {"Games:Games/_Course",""}
-    CloseFile 0
-EndIf
+.MainLoop:
+ currentScanDir$="Games:Games/_Course"
+
+ Dim List slaves.Slave(100)
+
+ Gosub LoadConfig
+
+ Gosub DisplayList
+ ;BLITZ   
+ Repeat
+    If ( RawStatus($44) OR RawStatus($13) )
+        ;QAMIGA
+        NPrint "Scan dir : ",currentScanDir$
+        Gosub ScanDir
+        Gosub LoadConfig
+        VWAIT 50
+        ;BLITZ
+        Gosub DisplayList
+
+    End If
+    VWAIT
+ Until (RawStatus($45))
+
+End
 
 
-If OpenFile(0,"slaves.data") ;
-    FileOutput 0
-    listdir {"Games:Games/_Course",""}
-    CloseFile 0
-    DefaultOutput
-EndIf
-
-
-Dim List slaves.Slave(100)
-
-If ReadFile (0,"slaves.data")
-    ; *** Read sequential file
+.LoadConfig:
+ USEPATH slaves() 
+ ResetList slaves()
+ While NextItem(slaves())
+    KillItem slaves()
+ Wend
+ResetList slaves()
+ If ReadFile (0,"slaves.data")
     FileInput 0
     While NOT Eof(O)
         If AddItem(slaves())
             l$=Edit$(128)
             delimiterPos=Instr(l$,DELIMITER$)
-            NPrint "= ",l$
             slaves()\name=Left$(l$,delimiterPos-1)
             slaves()\path=UnRight$(l$,delimiterPos)
         EndIf
     Wend
-    ; *** Close sequential file
     CloseFile 0
     DefaultInput
-EndIf
+ EndIf
+ RETURN
 
-USEPATH slaves() 
-ResetList slaves()
-While NextItem(slaves())
+.ScanDir:
+ If WriteFile(0,"slaves.data") ;
+  FileOutput 0
+  listdir {currentScanDir$,""}
+  CloseFile 0
+  DefaultOutput
+ EndIf
+ RETURN
+
+.DisplayList:
+ DefaultOutput
+ USEPATH slaves() 
+ ResetList slaves()
+ While NextItem(slaves())
     NPrint "===="
     NPrint " Name: ",\name
     NPrint " Path: ",\path
-Wend
-
-;End
-
+ Wend
+ RETURN
 
