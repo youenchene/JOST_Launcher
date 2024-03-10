@@ -1,0 +1,94 @@
+;****************************************
+; 1.3 JOST Launcher
+; 2024
+; Amiga version
+; Author: Youen CHENE
+;
+; Game/Demo launcher for JOST exe to run .slave for WHDLOAD compatible with 1.3 kickstart
+;
+;****************************************
+
+;NoCli
+WBStartup
+;CloseWorkBench_
+
+DEFTYPE.w
+
+AMIGA
+
+NPrint "Listing whdload slaves..."
+
+NEWTYPE.FileInfoBlock
+   _DiskKey.l
+   _DirEntryType.l
+   _FileName.b[108]
+   _Protection.l
+   _EntryType.l
+   _Size.l
+   _NumBlocks.l
+   ds_Days.l
+   ds_Minute.l
+   ds_Tick.l
+   _Comment.b[80]
+   _Reserved.b[36]
+End NEWTYPE
+
+DEFTYPE .FileInfoBlock myfib        ;myfib holds infoblock
+
+NEWTYPE.Slave
+    name$
+    path$
+End NEWTYPE
+
+Dim List slaves.Slave(100)
+
+Statement listdir{dir$,curdir$}
+  SHARED myfib
+  USEPATH myfib
+  lock.l=Lock_(&dir$,-2)                   ;lock is dos system to access files
+  countGame.b=0
+  If Examine_(lock,myfib)<>0               ;if we get lock on p$
+    While ExNext_(lock,myfib)<>0           ;skip through files
+      If \_DirEntryType<0                  ;if its not a directory
+        filename$ = LSet$(Peek$(&\_FileName),30)  ;30 56 or 106 depends of FFS         
+        If Len(filename$)>5
+            If Instr(filename$,".Slav")>0  OR  Instr(filename$,".slav")>0
+                name$=curdir$
+                If countGame > 0
+                    name$=name$ +" ("+  filename$ +")"
+                EndIf
+                NPrint name$,";",dir$,"/",filename$
+                countGame+1
+            EndIf
+        EndIf
+      Else
+        fi$=Peek$(&\_FileName)
+        listdir{dir$+"/"+fi$,fi$}
+      EndIf
+    Wend
+  EndIf
+  UnLock_ lock
+End Statement
+
+ If WriteFile(0,"slaves.data") ;
+    FileOutput 0
+    listdir {"Games:Games/_Course",""}
+    CloseFile 0
+EndIf
+
+;                If AddItem(slaves())
+;                    slaves()\name=name$
+;                    slaves()\path=dir$+"/"+filename$
+;                EndIf
+
+;USEPATH slaves() 
+;ResetList slaves()
+;While Nextltem(slaves())
+;    NPrint "===="
+;    NPrint " Name: ",name$
+;    NPrint " Path: ",dir$+"/"+filename$
+;Wend
+
+;End
+
+
