@@ -16,6 +16,8 @@ DEFTYPE.w
 
 DELIMITER$=";"
 
+#InitBufferCursor=2
+
 currentScanDir$="RAM:"
 
 AMIGA
@@ -73,29 +75,77 @@ Statement listdir{dir$,curdir$}
   UnLock_ lock
 End Statement
 
+
+
 .MainLoop:
- currentScanDir$="Games:Games/_Course"
+ currentScanDir$="Games:Games"
 
  Dim List slaves.Slave(100)
 
  Gosub LoadConfig
+ VWAIT 50
 
+ cursorY.b=0
+previousCursorY.b=0
+
+ BLITZ  
+ BitMap 0,640,256,2
+ BitMapOutput 0 
+ Slice 0,44,640,256,$fff9,2,0,4,640,640
+ Use Slice 0
+ PalRGB 0,0,0,0,0
+ PalRGB 0,1,15,15,15
+ Use Palette 0
+ CLS 0
+ Colour 1,0
+ Locate 1,0.5+cursorY
+ previousCursorY=cursorY
+
+ Print ">"
+ Locate 1,30.7
+ Print "HELP : R or Enter to scan folders"
+ Line 10,240,630,240,1 
  Gosub DisplayList
- ;BLITZ   
+
+ Show 0
+ updateCursor.b=0
+ bufferCursor=#InitBufferCursor
  Repeat
+    previousCursorY=cursorY
+    bufferCursor=bufferCursor-1
     If ( RawStatus($44) OR RawStatus($13) )
-        ;QAMIGA
+        QAMIGA
         NPrint "Scan dir : ",currentScanDir$
         Gosub ScanDir
         Gosub LoadConfig
         VWAIT 50
-        ;BLITZ
+        BLITZ
         Gosub DisplayList
-
     End If
+    If ((RawStatus($4C) OR Joyy(1)=-1) AND cursorY>0 AND bufferCursor<=0) 
+      cursorY=cursorY-1
+      updateCursor=-1
+    EndIf
+    If ((RawStatus($4F) OR Joyy(1)=1 ) AND cursorY<10 AND bufferCursor<=0)
+      cursorY=cursorY+1
+      updateCursor=-1
+    EndIf
+    ; 4f left 4e right
+    If (updateCursor)
+       Colour 0,0
+       Locate 1,0.5+previousCursorY
+       Print ">"
+       Colour 1,0
+       Locate 1,0.5+cursorY
+       Print ">"
+       bufferCursor=#InitBufferCursor
+       updateCursor=0
+    EndIf
     VWAIT
  Until (RawStatus($45))
-
+ VWait 100
+ Free BitMap 0
+ FreeSlices
 End
 
 
@@ -134,10 +184,16 @@ ResetList slaves()
  DefaultOutput
  USEPATH slaves() 
  ResetList slaves()
+ BitMapOutput 0 
+ Colour 1,0
+ Locate 1,0.5
+ i=0
  While NextItem(slaves())
-    NPrint "===="
-    NPrint " Name: ",\name
-    NPrint " Path: ",\path
+  If (i<20)
+    Locate 3,0.5+i
+    Print \name
+    i=i+1
+  EndIf
  Wend
  RETURN
 
