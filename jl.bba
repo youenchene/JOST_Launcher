@@ -16,7 +16,14 @@ DEFTYPE.w
 
 DELIMITER$=";"
 
-#InitBufferCursor=2
+#DEBUG=0
+
+#SLAVESDIM=255
+
+#InitBufferCursor=3
+
+#InitBufferBlinkingOn=40
+#InitBufferBlinkingOff=10
 
 #MaxHLine=28
 
@@ -47,7 +54,7 @@ NEWTYPE.Slave
     slave$
 End NEWTYPE
 
-Dim List slaves2.Slave(100)
+Dim List slaves2.Slave(#SLAVESDIM)
 
 
 Statement listdir{dir$,curdir$}
@@ -84,13 +91,20 @@ End Statement
  currentScanDir$="Games:Games"
 
  Dim List slaves.Slave(100)
-
+ slavesSize.w=0
+ NPRINT "Start Loading Config..."
  Gosub LoadConfig
+ NPRINT "Ended Loading Config."
  VWAIT 50
 
-cursorY.b=0
-previousCursorY.b=0
-cursorPage.b=0
+ cursorY.b=0
+ previousCursorY.b=0
+ cursorX.b=0
+ previousCursorX.b=0
+ previousCursorPage.w=0
+ cursorPage.w=0
+
+
 
  BLITZ  
  BitMap 0,640,256,2
@@ -99,40 +113,60 @@ cursorPage.b=0
  Use Slice 0
  PalRGB 0,0,0,0,0
  PalRGB 0,1,15,15,15
+ PalRGB 0,2,8,12,15
+ PalRGB 0,3,15,10,5
  Use Palette 0
  CLS 0
- Colour 1,0
- Locate 1,0.5+cursorY
- previousCursorY=cursorY
 
- Print ">"
+ previousCursorY=cursorY
+ previousCursorX=cursorX
+
  Locate 1,30.7
  Print "HELP : R or 0 to scan folders"
- Line 10,240,630,240,1 
+ Line 10,0,630,0,3
+ Line 10,1,630,1,3
+ Line 10,240,630,240,3
+ Line 10,241,630,241,3
  Gosub DisplayList
 
  Show 0
- updateCursor.b=0
- bufferCursor=#InitBufferCursor
+ updateCursor.b=-1
+ bufferCursor=0
  launch.q=0
  pathToLaunch$=""
  slaveToLaunch$=""
-
+ blinkingBuffer=#InitBufferBlinkingOn
+ blinkingStatus=0
  Repeat
     previousCursorY=cursorY
+    previousCursorX=cursorX
+    previousCursorPage=cursorPage
     bufferCursor=bufferCursor-1
+    blinkingBuffer=blinkingBuffer-1
     ; Scan dir
     If RawStatus($13)
-        Repeat
-          VWAIT
-        Until (RawStatus($44) OR Joyb(1))
-        QAMIGA
-        NPrint "Scan dir : ",currentScanDir$
-        Gosub ScanDir
-        Gosub LoadConfig
-        VWAIT 50
-        BLITZ
-        Gosub DisplayList
+      Colour 2,0
+      Locate 40,30.7  
+      NPrint "Confirm by Enter ou Button 1"
+      Repeat
+        VWAIT
+      Until (RawStatus($44) OR Joyb(1))
+      Colour 0,0
+      Locate 40,30.7  
+      NPrint "Confirm by Enter ou Button 1"
+      Colour 3,0
+      Locate 40,30.7  
+      NPrint "Scan dir : ",currentScanDir$
+      QAMIGA
+      Gosub ScanDir
+      Gosub LoadConfig
+      VWAIT 50
+      BitMapOutput 0 
+      BLITZ
+      Colour 0,0
+      Locate 40,30.7  
+      NPrint "Scan dir : ",currentScanDir$
+      Gosub DisplayList
     End If
     ; Enter
     If (RawStatus($44) OR Joyb(1))
@@ -143,26 +177,79 @@ cursorPage.b=0
       launch=-1
     End If
     ; Up
-    If ((RawStatus($4C) OR Joyy(1)=-1) AND cursorY>0 AND bufferCursor<=0) 
+    If ((RawStatus($4C) OR Joyy(1)=-1) AND (cursorPage+cursorY)>0 AND bufferCursor<=0) 
       cursorY=cursorY-1
       updateCursor=-1
+      ;if previous page
+      If cursorY<0
+       cursorY=#MaxHLine
+       cursorPage=cursorPage-(#MaxHLine+1)
+
+          If ((cursorPage/#MaxHLine) AND $1) = 1
+            cursorX=40
+          Else
+            cursorX=0
+          EndIf
+
+      EndIf
     EndIf
     ; down
-    If ((RawStatus($4F) OR Joyy(1)=1 ) AND cursorY<#MaxHLine AND bufferCursor<=0)
-      cursorY=cursorY+1
-      updateCursor=-1
+    If ((RawStatus($4F) OR Joyy(1)=1 ) AND bufferCursor<=0)
+      If (cursorPage+cursorY)<slavesSize
+        cursorY=cursorY+1
+        updateCursor=-1
+      
+        ; if next page
+        If cursorY>=#MaxHLine
+          cursorPage=cursorPage+(#MaxHLine+1)
+          ;
+          If ((cursorPage/#MaxHLine) AND $1) = 1
+            cursorX=40
+          Else
+            cursorX=0
+          EndIf
+
+          cursorY=0
+        EndIf
+      EndIf
+    EndIf
+    If (RawStatus($4e) OR Joyx(1)=1 )
     EndIf
     ; 4f left 4e right
     ; updateCursor
     If (updateCursor)
+      Colour 0,0
+      Locate previousCursorX+1,0.5+previousCursorY
+      Print ">"
+
+      Colour 2,0
+      Locate previousCursorX+3,0.5+previousCursorY
+      Print slaves(previousCursorPage+previousCursorY)\name
+
+      Colour 1,0
+      Locate cursorX+1,0.5+cursorY
+      Print ">"
+
+      Locate cursorX+3,0.5+cursorY
+      Print slaves(cursorPage+cursorY)\name
+
+      bufferCursor=#InitBufferCursor
+      updateCursor=0
+    EndIf
+    If blinkingBuffer < 1
+      blinking=-1-blinking
+      If blinking
        Colour 0,0
-       Locate 1,0.5+previousCursorY
-       Print ">"
+       blinkingBuffer=#InitBufferBlinkingOff
+      Else
        Colour 1,0
-       Locate 1,0.5+cursorY
-       Print ">"
-       bufferCursor=#InitBufferCursor
-       updateCursor=0
+       blinkingBuffer=#InitBufferBlinkingOn
+      EndIf
+      Locate cursorX+1,0.5+cursorY
+      Print ">"
+
+      Locate cursorX+3,0.5+cursorY
+      Print slaves(cursorPage+cursorY)\name
     EndIf
     VWAIT
  Until (RawStatus($45) OR launch)
@@ -198,18 +285,22 @@ End
     KillItem slaves()
  Wend
 ResetList slaves()
+slavesSize=-1
  If ReadFile (0,"slaves.data")
-    FileInput 0
-    While NOT Eof(O)
-        If AddItem(slaves())
-            l1$=Edit$(128)
-            delimiterPos=Instr(l1$,DELIMITER$)
-            slaves()\name=Left$(l1$,delimiterPos-1)
-            l2$=UnRight$(l1$,delimiterPos)
-            delimiterPos=Instr(l2$,DELIMITER$)
-            slaves()\path=Left$(l2$,delimiterPos-1)
-            slaves()\slave=UnRight$(l2$,delimiterPos)
-        EndIf
+    FileInput 0 
+    exit.b=0
+    While (NOT Eof(O)) AND AddItem(slaves())
+      l1$=Edit$(128)
+      delimiterPos=Instr(l1$,DELIMITER$)
+      slaves()\name=Left$(l1$,delimiterPos-1)
+      l2$=UnRight$(l1$,delimiterPos)
+      delimiterPos=Instr(l2$,DELIMITER$)
+      slaves()\path=Left$(l2$,delimiterPos-1)
+      slaves()\slave=UnRight$(l2$,delimiterPos)
+      slavesSize=slavesSize+1
+      If #DEBUG
+        NPRINT slavesSize," ",slaves()\name
+      EndIf
     Wend
     CloseFile 0
     DefaultInput
@@ -230,14 +321,21 @@ ResetList slaves()
  USEPATH slaves() 
  ResetList slaves()
  BitMapOutput 0 
- Colour 1,0
+ Colour 2,0
  Locate 1,0.5
- i=0
+ yi=0
  While NextItem(slaves())
-  If (i<#MaxHLine)
-    Locate 3,0.5+i
+  If xi<2
+    Locate 3+xi*40,0.5+yi
     Print \name
-    i=i+1
+    If (yi<#MaxHLine)
+      yi=yi+1
+    Else
+      yi=0
+      xi=xi+1
+    EndIf
+  Else
+    last = LastItem(slaves())
   EndIf
  Wend
  RETURN
