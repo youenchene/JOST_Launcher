@@ -127,10 +127,13 @@ End Statement
  Line 10,1,630,1,3
  Line 10,240,630,240,3
  Line 10,241,630,241,3
+ currentCursorPage=0
+ currentColorPage=1
  Gosub DisplayList
 
  Show 0
  updateCursor.b=-1
+ updatePage.b=0
  bufferCursor=0
  launch.q=0
  pathToLaunch$=""
@@ -166,6 +169,8 @@ End Statement
       Colour 0,0
       Locate 40,30.7  
       NPrint "Scan dir : ",currentScanDir$
+      currentCursorPage=cursorPage
+      currentColorPage=1
       Gosub DisplayList
     End If
     ; Enter
@@ -184,13 +189,7 @@ End Statement
       If cursorY<0
        cursorY=#MaxHLine
        cursorPage=cursorPage-(#MaxHLine+1)
-
-          If ((cursorPage/#MaxHLine) AND $1) = 1
-            cursorX=40
-          Else
-            cursorX=0
-          EndIf
-
+       updatePage=-1
       EndIf
     EndIf
     ; down
@@ -198,26 +197,45 @@ End Statement
       If (cursorPage+cursorY)<slavesSize
         cursorY=cursorY+1
         updateCursor=-1
-      
         ; if next page
-        If cursorY>=#MaxHLine
+        If cursorY>=(#MaxHLine+1)
           cursorPage=cursorPage+(#MaxHLine+1)
-          ;
-          If ((cursorPage/#MaxHLine) AND $1) = 1
-            cursorX=40
-          Else
-            cursorX=0
-          EndIf
-
+          updatePage=-1
           cursorY=0
         EndIf
       EndIf
     EndIf
     If (RawStatus($4e) OR Joyx(1)=1 )
+      cursorPage=cursorPage+(#MaxHLine+1)
+      updatePage=-1
+    EndIf
+    If (RawStatus($4f) OR Joyx(1)=1 )
+      cursorPage=cursorPage+(#MaxHLine+1)
+      updatePage=-1
     EndIf
     ; 4f left 4e right
     ; updateCursor
-    If (updateCursor)
+    If updatePage
+        If ((cursorPage/#MaxHLine) AND $1) = 1
+          cursorX=40
+        Else
+          cursorX=0
+        EndIf 
+        If ((cursorPage/#MaxHLine) AND $1) = 0
+          Colour 3,0
+          Locate 40,30.7  
+          currentCursorPage=previousCursorPage-#MaxHLine-1
+          NPrint "Update page ",cursorPage,"-",currentCursorPage
+          currentColorPage=0
+          Gosub DisplayList
+          currentColorPage=1
+          currentCursorPage=cursorPage
+          Gosub DisplayList
+        EndIf
+        updatePage=0
+    EndIf
+    If updateCursor 
+     ;TODO avoid if changepage
       Colour 0,0
       Locate previousCursorX+1,0.5+previousCursorY
       Print ">"
@@ -226,6 +244,8 @@ End Statement
       Locate previousCursorX+3,0.5+previousCursorY
       Print slaves(previousCursorPage+previousCursorY)\name
 
+      ;TODO end avoid if changepage
+      
       Colour 1,0
       Locate cursorX+1,0.5+cursorY
       Print ">"
@@ -236,7 +256,7 @@ End Statement
       bufferCursor=#InitBufferCursor
       updateCursor=0
     EndIf
-    If blinkingBuffer < 1
+    If blinkingBuffer < 1 
       blinking=-1-blinking
       If blinking
        Colour 0,0
@@ -317,26 +337,28 @@ slavesSize=-1
  RETURN
 
 .DisplayList:
- DefaultOutput
- USEPATH slaves() 
- ResetList slaves()
  BitMapOutput 0 
- Colour 2,0
+ If currentColorPage = 0
+  Colour 0,0
+ Else
+  Colour 2,0
+ EndIf
  Locate 1,0.5
  yi=0
- While NextItem(slaves())
+ xi=0
+ For i.w=currentCursorPage To (currentCursorPage+#MaxHLine*2+1)
   If xi<2
-    Locate 3+xi*40,0.5+yi
-    Print \name
-    If (yi<#MaxHLine)
-      yi=yi+1
-    Else
-      yi=0
-      xi=xi+1
+    If i<=slavesSize
+      Locate 3+xi*40,0.5+yi
+      Print slaves(i)\name
+      If (yi<#MaxHLine)
+        yi=yi+1
+      Else
+        yi=0
+        xi=xi+1
+      EndIf
     EndIf
-  Else
-    last = LastItem(slaves())
   EndIf
- Wend
+ Next
  RETURN
 
