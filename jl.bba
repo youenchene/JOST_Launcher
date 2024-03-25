@@ -134,6 +134,7 @@ End Statement
  Show 0
  updateCursor.b=-1
  updatePage.b=0
+ updatePage.b=0
  bufferCursor=0
  launch.q=0
  pathToLaunch$=""
@@ -188,8 +189,8 @@ End Statement
       ;if previous page
       If cursorY<0
        cursorY=#MaxHLine
-       cursorPage=cursorPage-(#MaxHLine+1)
-       updatePage=-1
+       cursorPage=cursorPage-#MaxHLine-1
+       updatePage=-2 
       EndIf
     EndIf
     ; down
@@ -209,43 +210,55 @@ End Statement
       cursorPage=cursorPage+(#MaxHLine+1)
       updatePage=-1
     EndIf
-    If (RawStatus($4f) OR Joyx(1)=1 )
-      cursorPage=cursorPage+(#MaxHLine+1)
-      updatePage=-1
+    If (RawStatus($4f) OR Joyx(1)=-1 )
+      cursorPage=cursorPage-(#MaxHLine+1)
+      updatePage=-2
     EndIf
-    ; 4f left 4e right
     ; updateCursor
-    If updatePage
-        If ((cursorPage/#MaxHLine) AND $1) = 1
+    If updatePage OR updatePage=-2
+        odd.b=((cursorPage/#MaxHLine) AND $1)
+        If  odd = 1
           cursorX=40
         Else
           cursorX=0
         EndIf 
-        If ((cursorPage/#MaxHLine) AND $1) = 0
+        If (odd = 0 AND updatePage=-1) OR (odd = 1 AND updatePage=-2)
+
           Colour 3,0
-          Locate 40,30.7  
-          currentCursorPage=previousCursorPage-#MaxHLine-1
-          NPrint "Update page ",cursorPage,"-",currentCursorPage
+          Locate 40,30.7
+          If updatePage = -1
+            currentCursorPage=previousCursorPage-#MaxHLine-1
+          Else
+            currentCursorPage=previousCursorPage
+          EndIf
+
           currentColorPage=0
           Gosub DisplayList
           currentColorPage=1
-          currentCursorPage=cursorPage
+          If updatePage = -1
+            currentCursorPage=cursorPage
+          Else
+            currentCursorPage=cursorPage-#MaxHLine-1
+          EndIf
           Gosub DisplayList
+          updatePage=2
+        Else
+          updatePage=0
         EndIf
-        updatePage=0
+        
     EndIf
     If updateCursor 
-     ;TODO avoid if changepage
       Colour 0,0
       Locate previousCursorX+1,0.5+previousCursorY
       Print ">"
+      If updatePage = 2
+        updatePage=0
+      Else
+        Colour 2,0
+        Locate previousCursorX+3,0.5+previousCursorY
+        Print slaves(previousCursorPage+previousCursorY)\name
+      EndIf
 
-      Colour 2,0
-      Locate previousCursorX+3,0.5+previousCursorY
-      Print slaves(previousCursorPage+previousCursorY)\name
-
-      ;TODO end avoid if changepage
-      
       Colour 1,0
       Locate cursorX+1,0.5+cursorY
       Print ">"
@@ -271,6 +284,10 @@ End Statement
       Locate cursorX+3,0.5+cursorY
       Print slaves(cursorPage+cursorY)\name
     EndIf
+
+    Colour 3,0
+    Locate 40,30.7
+    NPrint "Update page ",updatePage,"=====",cursorPage,"===",cursorY,"====="
     VWAIT
  Until (RawStatus($45) OR launch)
  VWait 100
