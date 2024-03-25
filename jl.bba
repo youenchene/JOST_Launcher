@@ -20,7 +20,8 @@ DELIMITER$=";"
 
 #SLAVESDIM=255
 
-#InitBufferCursor=3
+#InitBufferCursor=4
+#InitBufferCursorPage=8
 
 #InitBufferBlinkingOn=40
 #InitBufferBlinkingOff=10
@@ -194,7 +195,7 @@ End Statement
       EndIf
     EndIf
     ; down
-    If ((RawStatus($4F) OR Joyy(1)=1 ) AND bufferCursor<=0)
+    If ((RawStatus($4D) OR Joyy(1)=1)AND bufferCursor<=0)
       If (cursorPage+cursorY)<slavesSize
         cursorY=cursorY+1
         updateCursor=-1
@@ -206,46 +207,59 @@ End Statement
         EndIf
       EndIf
     EndIf
-    If (RawStatus($4e) OR Joyx(1)=1 )
-      cursorPage=cursorPage+(#MaxHLine+1)
-      updatePage=-1
+    If (RawStatus($4E) OR Joyx(1)=1) AND bufferCursor<=0
+      If (cursorPage+#MaxHLine+1) < slavesSize
+        cursorPage=cursorPage+(#MaxHLine+1)
+        updatePage=-1
+        updateCursor=-1
+        If (cursorPage+cursorY > slavesSize)
+          cursorY=slavesSize-cursorPage
+        EndIf
+      EndIf
     EndIf
-    If (RawStatus($4f) OR Joyx(1)=-1 )
-      cursorPage=cursorPage-(#MaxHLine+1)
-      updatePage=-2
+    If (RawStatus($4F) OR Joyx(1)=-1) AND bufferCursor<=0
+      If cursorPage > 0
+        cursorPage=cursorPage-(#MaxHLine+1)
+        updatePage=-2
+        updateCursor=-1
+      EndIf
     EndIf
     ; updateCursor
     If updatePage OR updatePage=-2
-        odd.b=((cursorPage/#MaxHLine) AND $1)
-        If  odd = 1
-          cursorX=40
-        Else
-          cursorX=0
-        EndIf 
-        If (odd = 0 AND updatePage=-1) OR (odd = 1 AND updatePage=-2)
+      odd.b=((cursorPage/#MaxHLine) AND $1)
+      If  odd = 1
+        cursorX=40
+      Else
+        cursorX=0
+      EndIf 
+      If (odd = 0 AND updatePage=-1) OR (odd = 1 AND updatePage=-2)
 
-          Colour 3,0
-          Locate 40,30.7
-          If updatePage = -1
-            currentCursorPage=previousCursorPage-#MaxHLine-1
-          Else
-            currentCursorPage=previousCursorPage
-          EndIf
-
-          currentColorPage=0
-          Gosub DisplayList
-          currentColorPage=1
-          If updatePage = -1
-            currentCursorPage=cursorPage
-          Else
-            currentCursorPage=cursorPage-#MaxHLine-1
-          EndIf
-          Gosub DisplayList
-          updatePage=2
+        Colour 3,0
+        Locate 40,30.7
+        If updatePage = -1
+          currentCursorPage=previousCursorPage-#MaxHLine-1
         Else
-          updatePage=0
+          currentCursorPage=previousCursorPage
         EndIf
-        
+
+        currentColorPage=0
+        Gosub DisplayList
+        currentColorPage=1
+        If updatePage = -1
+          currentCursorPage=cursorPage
+        Else
+          currentCursorPage=cursorPage-#MaxHLine-1
+        EndIf
+        Gosub DisplayList
+        updatePage=2
+      Else
+        updatePage=0
+      EndIf
+      bufferCursor=#InitBufferCursorPage
+    Else
+      If updateCursor 
+        bufferCursor=#InitBufferCursor
+      EndIf
     EndIf
     If updateCursor 
       Colour 0,0
@@ -266,7 +280,6 @@ End Statement
       Locate cursorX+3,0.5+cursorY
       Print slaves(cursorPage+cursorY)\name
 
-      bufferCursor=#InitBufferCursor
       updateCursor=0
     EndIf
     If blinkingBuffer < 1 
