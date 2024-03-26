@@ -118,7 +118,8 @@ End Statement
  PalRGB 0,3,15,10,5
  Use Palette 0
  CLS 0
-
+ Show 0
+ 
  previousCursorY=cursorY
  previousCursorX=cursorX
 
@@ -132,7 +133,24 @@ End Statement
  currentColorPage=1
  Gosub DisplayList
 
- Show 0
+ ;Copper Juice
+ ColSplit 3,15,10,5,0
+ ColSplit 3,14,7,3,1
+ For H=0 To 28
+  For Y=0 To 4
+    ColSplit 2,8+Y,12+Y/2,15,4+Y*2+H*8
+  Next
+ Next
+ ColSplit 3,14,7,3,240
+ ColSplit 3,15,10,5,241
+ For Y=0 To 4
+    ColSplit 3,15,10+Y/2,5+Y,245+Y*2
+ Next
+ For Y=0 To 4
+    ColSplit 1,15-Y,15-Y,15-Y,245+Y*2
+ Next
+ ;
+
  updateCursor.b=-1
  updatePage.b=0
  updatePage.b=0
@@ -142,6 +160,14 @@ End Statement
  slaveToLaunch$=""
  blinkingBuffer=#InitBufferBlinkingOn
  blinkingStatus=0
+
+;The rawkey codes for the CD audio control keys are: 
+;STOP 0x72 
+;PLAY/PAUSE 0x73 
+;FF 0x74 
+;REW 0x75 
+
+
  Repeat
     previousCursorY=cursorY
     previousCursorX=cursorX
@@ -149,31 +175,41 @@ End Statement
     bufferCursor=bufferCursor-1
     blinkingBuffer=blinkingBuffer-1
     ; Scan dir
-    If RawStatus($13)
-      Colour 2,0
-      Locate 40,30.7  
-      NPrint "Confirm by Enter ou Button 1"
-      Repeat
-        VWAIT
-      Until (RawStatus($44) OR Joyb(1))
-      Colour 0,0
-      Locate 40,30.7  
-      NPrint "Confirm by Enter ou Button 1"
+    If RawStatus($13) OR RawStatus($0F)
       Colour 3,0
-      Locate 40,30.7  
-      NPrint "Scan dir : ",currentScanDir$
-      QAMIGA
-      Gosub ScanDir
-      Gosub LoadConfig
+      Locate 32,30.7  
+      confirmTxt$="Enter ou Button 1 To confirm / R or 0 to cancel"
+      NPrint confirmTxt$
+      cancel.b=0
       VWAIT 50
-      BitMapOutput 0 
-      BLITZ
+      Repeat
+        If RawStatus($13) OR RawStatus($0F)
+          cancel=-1
+        EndIf
+        VWAIT
+      Until (RawStatus($44) OR Joyb(1) OR cancel)
       Colour 0,0
-      Locate 40,30.7  
-      NPrint "Scan dir : ",currentScanDir$
-      currentCursorPage=cursorPage
-      currentColorPage=1
-      Gosub DisplayList
+      Locate 32,30.7  
+      NPrint confirmTxt$
+      If cancel=0
+        Colour 3,0
+        Locate 40,30.7  
+        NPrint "Scan dir : ",currentScanDir$
+        QAMIGA
+        Gosub ScanDir
+        Gosub LoadConfig
+        VWAIT 50
+        BitMapOutput 0 
+        BLITZ
+        Colour 0,0
+        Locate 40,30.7  
+        NPrint "Scan dir : ",currentScanDir$
+        currentCursorPage=cursorPage
+        currentColorPage=1
+        Gosub DisplayList
+      Else
+       VWAIT 50
+      EndIf
     End If
     ; Enter
     If (RawStatus($44) OR Joyb(1))
@@ -297,10 +333,6 @@ End Statement
       Locate cursorX+3,0.5+cursorY
       Print slaves(cursorPage+cursorY)\name
     EndIf
-
-    Colour 3,0
-    Locate 40,30.7
-    NPrint "Update page ",updatePage,"=====",cursorPage,"===",cursorY,"====="
     VWAIT
  Until (RawStatus($45) OR launch)
  VWait 100
