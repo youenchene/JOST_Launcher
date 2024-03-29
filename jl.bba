@@ -238,6 +238,7 @@ End Statement
         SOUND 1,15
       Else
         SOUND 2,15
+        bufferCursor=#InitBufferCursor
       EndIf
     EndIf
     ; down
@@ -254,6 +255,7 @@ End Statement
         SOUND 1,15
       Else
         SOUND 2,15
+        bufferCursor=#InitBufferCursor
       EndIf
     EndIf
     If (RawStatus($4E) OR Joyx(1)=1) AND bufferCursor<=0
@@ -267,6 +269,7 @@ End Statement
         SOUND 0,15
       Else
         SOUND 2,15
+        bufferCursor=#InitBufferCursor
       EndIf
     EndIf
     If (RawStatus($4F) OR Joyx(1)=-1) AND bufferCursor<=0
@@ -277,6 +280,7 @@ End Statement
         SOUND 0,15
       Else
         SOUND 2,15
+        bufferCursor=#InitBufferCursor
       EndIf
     EndIf
     ; updateCursor
@@ -355,7 +359,7 @@ End Statement
     EndIf
     VWAIT
  Until (RawStatus($45) OR launch)
- VWait 100
+ VWait 150
  Free BitMap 0
  FreeSlices
  Free Sound 0
