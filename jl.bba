@@ -104,7 +104,11 @@ End Statement
  previousCursorX.b=0
  previousCursorPage.w=0
  cursorPage.w=0
-
+ 
+ DecodeSound 0, ?snd0
+ DecodeSound 1, ?snd1
+ DecodeSound 2, ?snd2
+ DecodeSound 3, ?snd3
 
 
  BLITZ  
@@ -218,16 +222,22 @@ End Statement
       pathToLaunch$=slaves(cursorPage+cursorY)\path
       slaveToLaunch$=slaves(cursorPage+cursorY)\slave
       launch=-1
+      SOUND 3,15
     End If
     ; Up
-    If ((RawStatus($4C) OR Joyy(1)=-1) AND (cursorPage+cursorY)>0 AND bufferCursor<=0) 
-      cursorY=cursorY-1
-      updateCursor=-1
-      ;if previous page
-      If cursorY<0
-       cursorY=#MaxHLine
-       cursorPage=cursorPage-#MaxHLine-1
-       updatePage=-2 
+    If ((RawStatus($4C) OR Joyy(1)=-1) AND bufferCursor<=0) 
+      If (cursorPage+cursorY)>0 
+        cursorY=cursorY-1
+        updateCursor=-1
+        ;if previous page
+        If cursorY<0
+          cursorY=#MaxHLine
+          cursorPage=cursorPage-#MaxHLine-1
+          updatePage=-2 
+        EndIf
+        SOUND 1,15
+      Else
+        SOUND 2,15
       EndIf
     EndIf
     ; down
@@ -241,6 +251,9 @@ End Statement
           updatePage=-1
           cursorY=0
         EndIf
+        SOUND 1,15
+      Else
+        SOUND 2,15
       EndIf
     EndIf
     If (RawStatus($4E) OR Joyx(1)=1) AND bufferCursor<=0
@@ -251,6 +264,9 @@ End Statement
         If (cursorPage+cursorY > slavesSize)
           cursorY=slavesSize-cursorPage
         EndIf
+        SOUND 0,15
+      Else
+        SOUND 2,15
       EndIf
     EndIf
     If (RawStatus($4F) OR Joyx(1)=-1) AND bufferCursor<=0
@@ -258,10 +274,14 @@ End Statement
         cursorPage=cursorPage-(#MaxHLine+1)
         updatePage=-2
         updateCursor=-1
+        SOUND 0,15
+      Else
+        SOUND 2,15
       EndIf
     EndIf
     ; updateCursor
     If updatePage OR updatePage=-2
+    
       odd.b=((cursorPage/#MaxHLine) AND $1)
       If  odd = 1
         cursorX=40
@@ -269,7 +289,7 @@ End Statement
         cursorX=0
       EndIf 
       If (odd = 0 AND updatePage=-1) OR (odd = 1 AND updatePage=-2)
-
+        
         Colour 3,0
         Locate 40,30.7
         If updatePage = -1
@@ -338,6 +358,10 @@ End Statement
  VWait 100
  Free BitMap 0
  FreeSlices
+ Free Sound 0
+ Free Sound 1
+ Free Sound 2
+ Free Sound 3
 
 If (launch)
   AMIGA 
@@ -424,3 +448,7 @@ slavesSize=-1
  Next
  RETURN
 
+snd0: IncBin "data/sound0.iff"
+snd1: IncBin "data/sound1.iff"
+snd2: IncBin "data/sound2.iff"
+snd3: IncBin "data/sound3.iff"
