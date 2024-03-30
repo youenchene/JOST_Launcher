@@ -1,7 +1,7 @@
 ;****************************************
-; 1.3 JOST Launcher
+; JOST Launcher for 1.3 kickstart
 ; 2024
-; Amiga version
+; 
 ; Author: Youen CHENE
 ;
 ; Game/Demo launcher for JOST exe to run .slave for WHDLOAD compatible with 1.3 kickstart
@@ -27,6 +27,9 @@ DELIMITER$=";"
 #InitBufferBlinkingOff=10
 
 #MaxHLine=28
+
+#MOUSETRIGGERY=6
+#MOUSETRIGGERX=10
 
 currentScanDir$="RAM:"
 
@@ -112,6 +115,8 @@ End Statement
 
 
  BLITZ  
+ MOUSE ON
+
  BitMap 0,640,256,2
  BitMapOutput 0 
  Slice 0,44,640,256,$fff9,2,0,4,640,640
@@ -128,7 +133,7 @@ End Statement
  previousCursorX=cursorX
 
  Locate 1,30.7
- Print "HELP : R or 0 to scan folders"
+ Print "HELP : S or FF to scan folders"
  Line 10,0,630,0,3
  Line 10,1,630,1,3
  Line 10,240,630,240,3
@@ -165,6 +170,9 @@ End Statement
  blinkingBuffer=#InitBufferBlinkingOn
  blinkingStatus=0
 
+ mx=0
+ my=0
+
 ;The rawkey codes for the CD audio control keys are: 
 ;STOP 0x72 
 ;PLAY/PAUSE 0x73 
@@ -173,25 +181,32 @@ End Statement
 
 
  Repeat
+    mx=MouseXSpeed
+    my=MouseYSpeed
+
+    Colour 3,0
+    Locate 40,30.7  
+    NPrint "Mouse : ",mx," --- ",my
+        
     previousCursorY=cursorY
     previousCursorX=cursorX
     previousCursorPage=cursorPage
     bufferCursor=bufferCursor-1
     blinkingBuffer=blinkingBuffer-1
     ; Scan dir
-    If RawStatus($13) OR RawStatus($0F)
+    If RawStatus($21) OR RawStatus($74)
       Colour 3,0
       Locate 32,30.7  
-      confirmTxt$="Enter ou Button 1 To confirm / R or 0 to cancel"
+      confirmTxt$="Enter, Button1 or Play To confirm / C, RW or Stop to cancel"
       NPrint confirmTxt$
       cancel.b=0
       VWAIT 50
       Repeat
-        If RawStatus($13) OR RawStatus($0F)
+        If RawStatus($33) OR RawStatus($75) OR RawStatus($72)
           cancel=-1
         EndIf
         VWAIT
-      Until (RawStatus($44) OR Joyb(1) OR cancel)
+      Until (RawStatus($44) OR Joyb(1) OR Joyb(0) OR cancel OR RawStatus($73))
       Colour 0,0
       Locate 32,30.7  
       NPrint confirmTxt$
@@ -216,7 +231,7 @@ End Statement
       EndIf
     End If
     ; Enter
-    If (RawStatus($44) OR Joyb(1))
+    If RawStatus($44) OR RawStatus($73) OR Joyb(1) OR Joyb(0)
       Locate 30,30.7
       NPrint "Launching : ",slaves(cursorPage+cursorY)\name
       pathToLaunch$=slaves(cursorPage+cursorY)\path
@@ -225,7 +240,7 @@ End Statement
       SOUND 3,15
     End If
     ; Up
-    If ((RawStatus($4C) OR Joyy(1)=-1) AND bufferCursor<=0) 
+    If ((RawStatus($4C) OR Joyy(1)=-1 OR my<=-#MOUSETRIGGERY) AND bufferCursor<=0) 
       If (cursorPage+cursorY)>0 
         cursorY=cursorY-1
         updateCursor=-1
@@ -242,7 +257,7 @@ End Statement
       EndIf
     EndIf
     ; down
-    If ((RawStatus($4D) OR Joyy(1)=1)AND bufferCursor<=0)
+    If ((RawStatus($4D) OR Joyy(1)=1 OR my>=#MOUSETRIGGERY)AND bufferCursor<=0)
       If (cursorPage+cursorY)<slavesSize
         cursorY=cursorY+1
         updateCursor=-1
@@ -258,7 +273,7 @@ End Statement
         bufferCursor=#InitBufferCursor
       EndIf
     EndIf
-    If (RawStatus($4E) OR Joyx(1)=1) AND bufferCursor<=0
+    If (RawStatus($4E) OR Joyx(1)=1 OR mx<=-#MOUSETRIGGERX) AND bufferCursor<=0
       If (cursorPage+#MaxHLine+1) < slavesSize
         cursorPage=cursorPage+(#MaxHLine+1)
         updatePage=-1
@@ -272,7 +287,7 @@ End Statement
         bufferCursor=#InitBufferCursor
       EndIf
     EndIf
-    If (RawStatus($4F) OR Joyx(1)=-1) AND bufferCursor<=0
+    If (RawStatus($4F) OR Joyx(1)=-1 OR mx>=#MOUSETRIGGERX) AND bufferCursor<=0
       If cursorPage > 0
         cursorPage=cursorPage-(#MaxHLine+1)
         updatePage=-2
@@ -374,15 +389,17 @@ If (launch)
   command2$="jst "+slaveToLaunch$
   If WriteFile(0,"RAM:cmd") ;
     FileOutput 0
+    NPrint "WAIT 3"
     NPrint command1$
     NPrint command2$
+    NPrint "jl"
     CloseFile 0
     DefaultOutput
   EndIf
   Execute_ "EXECUTE RAM:cmd",0,0
-Repeat
- vwait
- Until (RawStatus($45))
+;Repeat
+; vwait
+; Until (RawStatus($45))
 End If
 
 End
