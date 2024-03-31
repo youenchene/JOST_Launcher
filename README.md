@@ -38,7 +38,7 @@ Keyboard :
 - Escape to quite
 
 
-# Input Documentation
+# Dev Documentation
 
 - http://amigadev.elowar.com/read/ADCD_2.1/Includes_and_Autodocs_3._guide/node015E.html
 - https://github.com/jotd666/jst
@@ -48,3 +48,9 @@ Keyboard :
  - Jotd/Jean-François Fabre for his huge work on jst.
  - Daedalus and Earok from the blitzbasic.dev discord.
  - Whdload contributors.
+ - Gibs for his work on TinyLauncher.
+
+# Release Notes
+
+## 0.1
+ - Initial alpha version
