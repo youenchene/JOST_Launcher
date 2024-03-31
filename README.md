@@ -10,10 +10,12 @@ You can fully control the launcher with your CDTV Remote, mouse mode or joy mode
 # How to setup
 
 Prequisites :
-- You need `jost` in your `C` folder. [Download](https://github.com/jotd666/jst)
+- You need `jost` in your `C:` folder. [Download](https://github.com/jotd666/jst)
 - Kickstarts files. Legit files can be bought from [Amiga Forever](https://www.amigaforever.com/)
 
-Copy `jl` executable n your `C` folder.
+1. Copy `jl` executable n your `C:` folder.
+2. Change content and copy `jl-config.cfg` to `S:` folder
+3. Launch jl and launch a scan. It should add a `jl-inventory.data` in your `S:` folder
 
 Launch it through CLI or add it in your startup sequence.
 
