@@ -58,11 +58,10 @@ NEWTYPE.Slave
     slave$
 End NEWTYPE
 
-Dim List slaves2.Slave(#SLAVESDIM)
-
+Dim List slaves.Slave(#SLAVESDIM)
 
 Statement listdir{dir$,curdir$}
-  SHARED myfib, slaves2, DELIMITER$
+  SHARED myfib, DELIMITER$
   USEPATH myfib
   lock.l=Lock_(&dir$,-2)                   ;lock is dos system to access files
   countGame.b=0
@@ -82,7 +81,9 @@ Statement listdir{dir$,curdir$}
         EndIf
       Else
         fi$=Peek$(&\_FileName)
-        listdir{dir$+"/"+fi$,fi$}
+        If  fi$ <> "data"
+          listdir{dir$+"/"+fi$,fi$}
+        EndIf
       EndIf
     Wend
   EndIf
@@ -92,8 +93,6 @@ End Statement
 
 
 .MainLoop:
-
- Dim List slaves.Slave(100)
  slavesSize.w=0
  NPRINT "Start Loading Config."
  Gosub LoadConfig
@@ -182,6 +181,8 @@ End Statement
 ;PLAY/PAUSE 0x73 
 ;FF 0x74 
 ;REW 0x75 
+;
+; Looks like it's not working 
 
 
  Repeat
@@ -430,36 +431,68 @@ End
  RETURN
 
 .LoadInventory:
- USEPATH slaves() 
- ResetList slaves()
- While NextItem(slaves())
-    KillItem slaves()
- Wend
-ResetList slaves()
+Dim List slavesin.Slave(#SLAVESDIM)
+ClearList slaves()
+ResetList slavesin()
 slavesSize=-1
  If ReadFile (0,"S:jl-inventory.data")
     FileInput 0 
-    exit.b=0
-    While (NOT Eof(O)) AND AddItem(slaves())
+    While NOT Eof(O)
       l1$=Edit$(128)
       delimiterPos=Instr(l1$,DELIMITER$)
-      slaves()\name=Left$(l1$,delimiterPos-1)
-      l2$=UnRight$(l1$,delimiterPos)
-      delimiterPos=Instr(l2$,DELIMITER$)
-      slaves()\path=Left$(l2$,delimiterPos-1)
-      slaves()\slave=UnRight$(l2$,delimiterPos)
-      slavesSize=slavesSize+1
-      If #DEBUG
-        NPRINT slavesSize," ",slaves()\name
+      name$=Left$(l1$,delimiterPos-1)
+      fill.b=0
+      ResetList slavesin()
+      While (fill=0)
+        If NextItem(slavesin())
+            If name$ < slavesin()\name
+                If PrevItem(slavesin()) ; insert just before
+                    If AddItem(slavesin())
+                        fill=-1
+                    EndIf
+                Else 
+                    ResetList slavesin() ; insert first
+                    If AddItem(slavesin())
+                        fill=-1
+                    EndIf
+                EndIf
+            EndIf
+        Else
+            If AddItem(slavesin()) ; insert first intem
+                fill=-1
+            EndIf
+        EndIf
+      Wend
+      If fill=0
+        If AddItem(slavesin()) ; append
+            fill=-1
+        EndIf
+      EndIf
+      If fill
+        slavesin()\name=name$
+        l2$=UnRight$(l1$,delimiterPos)
+        delimiterPos=Instr(l2$,DELIMITER$)
+        slavesin()\path=Left$(l2$,delimiterPos-1)
+        slavesin()\slave=UnRight$(l2$,delimiterPos)
+        slavesSize=slavesSize+1
+        If #DEBUG
+            NPRINT slavesSize," ",slavesin()\name
+        EndIf
       EndIf
     Wend
     CloseFile 0
     DefaultInput
-    StringSort slaves(),SizeOf.Slave
-    If #DEBUG
-      MouseWait
-    EndIf
- EndIf
+    ResetList slavesin()
+    ResetList slaves()
+    While(NextItem(slavesin())) 
+     If (AddItem(slaves())) ; need to recopy to reconstruct index
+        slaves()\name=slavesin()\name
+        slaves()\path=slavesin()\path
+        slaves()\slave=slavesin()\slave
+     EndIf
+    Wend
+    ClearList slavesin()
+  EndIf
  RETURN
 
 .ScanDir:
