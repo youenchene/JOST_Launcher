@@ -53,7 +53,7 @@ Example:
 
 _Optional_
 
-To specify an inventory file  other than de default one (`S:jl-inventory.data`)
+To specify an inventory file other than the default one (`S:jl-inventory.data`)
 
 Example:
 
@@ -77,7 +77,7 @@ Example:
 ## 0.2
  - feat: Add alphabetical order on games display
  - fix: hardcoded limit of 100 games
- - fix: Scan on 1.3 not working on mor than the 1st folder
+ - fix: Scan on 1.3 not working on more than the 1st folder
  - feat: new optional config entry `inventory_file`
 
 ## 0.1
