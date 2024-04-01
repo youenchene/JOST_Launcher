@@ -16,6 +16,7 @@ DEFTYPE.w
 
 DELIMITER$=";"
 DELIMITERCFG$="="
+INVENTORY_FILE$="S:jl-inventory.data"
 
 #DEBUG=0
 
@@ -31,7 +32,7 @@ DELIMITERCFG$="="
 
 #MOUSETRIGGER=6 ; On CDTV Remote it trigger 6 to 8 on speed
 
-currentScanDir$="RAM:"
+CURRENTSCANDIR$="RAM:"
 
 AMIGA
 
@@ -50,8 +51,6 @@ NEWTYPE.FileInfoBlock
    _Reserved.b[36]
 End NEWTYPE
 
-DEFTYPE .FileInfoBlock myfib        ;myfib holds infoblock
-
 NEWTYPE.Slave
     name$
     path$
@@ -61,14 +60,14 @@ End NEWTYPE
 Dim List slaves.Slave(#SLAVESDIM)
 
 Statement listdir{dir$,curdir$}
-  SHARED myfib, DELIMITER$
-  USEPATH myfib
+  SHARED DELIMITER$
+  DEFTYPE .FileInfoBlock myfib  
   lock.l=Lock_(&dir$,-2)                   ;lock is dos system to access files
   countGame.b=0
   If Examine_(lock,myfib)<>0               ;if we get lock on p$
     While ExNext_(lock,myfib)<>0           ;skip through files
-      If \_DirEntryType<0                  ;if its not a directory
-        filename$ = LSet$(Peek$(&\_FileName),30)  ;30 56 or 106 depends of FFS         
+      If myfib\_DirEntryType<0                  ;if its not a directory
+        filename$ = LSet$(Peek$(&myfib\_FileName),30)  ;30 56 or 106 depends of FFS  
         If Len(filename$)>5
             If Instr(filename$,".Slav")>0  OR  Instr(filename$,".slav")>0
                 name$=curdir$
@@ -80,7 +79,7 @@ Statement listdir{dir$,curdir$}
             EndIf
         EndIf
       Else
-        fi$=Peek$(&\_FileName)
+        fi$=Peek$(&myfib\_FileName)
         If  fi$ <> "data"
           listdir{dir$+"/"+fi$,fi$}
         EndIf
@@ -214,7 +213,7 @@ End Statement
       If cancel=0
         Colour 3,0
         Locate 40,30.7  
-        NPrint "Scan dir : ",currentScanDir$
+        NPrint "Scan dir : ",CURRENTSCANDIR$
         QAMIGA
         Gosub ScanDir
         Gosub LoadInventory
@@ -223,7 +222,7 @@ End Statement
         BLITZ
         Colour 0,0
         Locate 40,30.7  
-        NPrint "Scan dir : ",currentScanDir$
+        NPrint "Scan dir : ",CURRENTSCANDIR$
         currentCursorPage=cursorPage
         currentColorPage=1
         Gosub DisplayList
@@ -420,8 +419,12 @@ End
         key$=Left$(l1$,delimiterPos-1)
         value$=UnRight$(l1$,delimiterPos)
         If key$="scan_dir_1"
-          currentScanDir$=value$
-          NPrint "CurrentScanDir = ",currentScanDir$
+          CURRENTSCANDIR$=value$
+          NPrint "CurrentScanDir = ",CURRENTSCANDIR$
+        EndIf
+        If key$="inventory_file"
+          INVENTORY_FILE$=value$
+          NPrint "InventoryFile = ",INVENTORY_FILE$
         EndIf
       EndIf
     Wend
@@ -435,7 +438,7 @@ Dim List slavesin.Slave(#SLAVESDIM)
 ClearList slaves()
 ResetList slavesin()
 slavesSize=-1
- If ReadFile (0,"S:jl-inventory.data")
+ If ReadFile (0,INVENTORY_FILE$)
     FileInput 0 
     While NOT Eof(O)
       l1$=Edit$(128)
@@ -496,9 +499,9 @@ slavesSize=-1
  RETURN
 
 .ScanDir:
- If WriteFile(0,"S:jl-inventory.data") ;
+ If WriteFile(0,INVENTORY_FILE$) ;
   FileOutput 0
-  listdir {currentScanDir$,""}
+  listdir {CURRENTSCANDIR$,""}
   CloseFile 0
   DefaultOutput
  EndIf

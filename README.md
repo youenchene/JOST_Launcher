@@ -37,6 +37,28 @@ Keyboard :
 - S to scan your whdload games or demo folder.
 - Escape to quite
 
+# jl-config.cfg setup
+
+## scan_dir_1
+
+**Mandatory**
+
+To specify the folder to be scanned. No trailing `/` at the end please.
+
+Example:
+
+`scan_dir_1=Games:Games`
+
+## inventory_file
+
+_Optional_
+
+To specify an inventory file  other than de default one (`S:jl-inventory.data`)
+
+Example:
+
+`inventory_file=Games:inventory_1.data`
+
 
 # Dev Documentation
 
@@ -51,6 +73,12 @@ Keyboard :
  - Gibs for his work on TinyLauncher.
 
 # Release Notes
+
+## 0.2
+ - feat: Add alphabetical order on games display
+ - fix: hardcoded limit of 100 games
+ - fix: Scan on 1.3 not working on mor than the 1st folder
+ - feat: new optional config entry `inventory_file`
 
 ## 0.1
  - Initial alpha version
