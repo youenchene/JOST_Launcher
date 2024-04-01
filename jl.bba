@@ -410,7 +410,7 @@ End
 
 .LoadConfig:
  If ReadFile (0,"S:jl-config.cfg")
-    FileInput 0 
+    FileInput 0
     exit.b=0
     While NOT Eof(O)
       l1$=Edit$(128)
@@ -455,6 +455,10 @@ slavesSize=-1
     Wend
     CloseFile 0
     DefaultInput
+    StringSort slaves(),SizeOf.Slave
+    If #DEBUG
+      MouseWait
+    EndIf
  EndIf
  RETURN
 
