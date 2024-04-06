@@ -7,6 +7,8 @@ The target setup for this launcher is a CDTV with 8Mo fast memory and BlueCDTV/B
 
 You can fully control the launcher with your CDTV Remote, mouse mode or joy mode.
 
+: ![screenshot](screen_v0.2.png)
+
 # How to setup
 
 Prequisites :
