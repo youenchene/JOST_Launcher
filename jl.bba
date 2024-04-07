@@ -71,7 +71,7 @@ Dim List slaves.Slave(#SLAVESDIM)
 Dim List folders.Folder(#FOLDERDIM)
 
 folderMode=0
-folderIndex=-1
+currentFolder=-1
 
 Statement listdir{dir$,curdir$}
   SHARED DELIMITER$
@@ -217,6 +217,7 @@ End Statement
         currentColorPage=0
         Gosub DisplayList
         ; fdisplay folder
+        currentFolder = -1
         cursorY=0
         cursorX=0
         cursorPage=0
@@ -228,6 +229,7 @@ End Statement
         currentColorPage=0
         Gosub DisplayFolder
         ; fdisplay folder
+        currentFolder = -1
         cursorY=0
         cursorX=0
         cursorPage=0
@@ -284,6 +286,23 @@ End Statement
         slaveToLaunch$=slaves(cursorPage+cursorY)\slave
         launch=-1
         SOUND 3,15
+      Else
+        If currentFolder = -1
+          currentFolder=cursorPage+cursorYf
+          Locate 30,30.7
+          NPrint "Folder : ",folders(currentFolder)\name        
+          ; erase current display
+          currentColorPage=0
+          Gosub DisplayFolder
+          cursorY=0
+          cursorX=0
+          cursorPage=0
+          currentCursorPage=0
+          currentColorPage=1
+          Gosub DisplayFolderContent
+        Else
+          ;launch
+        EndIf
       EndIf
     End If
 
@@ -663,6 +682,37 @@ folderSize=-1
     If i<=folderSize
       Locate 3+xi*40,0.5+yi
       Print folders(i)\name
+      If (yi<#MaxHLine)
+        yi=yi+1
+      Else
+        yi=0
+        xi=xi+1
+      EndIf
+    EndIf
+  EndIf
+ Next
+ RETURN
+
+.DisplayFolderContent:
+ BitMapOutput 0 
+ If currentColorPage = 0
+  Colour 0,0
+ Else
+  Colour 2,0
+ EndIf
+ Locate 1,0.5
+ yi=0
+ xi=0
+ For i.w=cufrrentCursorPage To (currentCursorPage+#MaxHLine*2+1)
+  If xi<2
+    If i<=folderSize
+      Locate 3+xi*40,0.5+yi
+      If i=0
+      Print ".."
+      Else
+        j=folders(currentFolder)\indexSlave[i-1]
+        Print slaves(j)\name
+      EndIf
       If (yi<#MaxHLine)
         yi=yi+1
       Else
