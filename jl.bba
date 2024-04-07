@@ -71,6 +71,7 @@ Dim List slaves.Slave(#SLAVESDIM)
 Dim List folders.Folder(#FOLDERDIM)
 
 folderMode=0
+folderIndex=-1
 
 Statement listdir{dir$,curdir$}
   SHARED DELIMITER$
@@ -206,6 +207,37 @@ End Statement
     previousCursorPage=cursorPage
     bufferCursor=bufferCursor-1
     blinkingBuffer=blinkingBuffer-1
+    ; Switch to Folder mode
+    If (RawStatus($23) OR RawStatus($1D)) AND bufferCursor<=0
+      folderMode=1-folderMode
+      ;Redisplay
+      
+      If folderMode=1 ;switch to folder
+        ; erase current display
+        currentColorPage=0
+        Gosub DisplayList
+        ; fdisplay folder
+        cursorY=0
+        cursorX=0
+        cursorPage=0
+        currentCursorPage=0
+        currentColorPage=1
+        Gosub DisplayFolder
+      Else
+        ; erase current display
+        currentColorPage=0
+        Gosub DisplayFolder
+        ; fdisplay folder
+        cursorY=0
+        cursorX=0
+        cursorPage=0
+        currentCursorPage=0
+        currentColorPage=1
+        Gosub DisplayList
+      EndIf
+      updateCursor=-1
+      bufferCursor=#InitBufferCursorPage*2
+    EndIf
     ; Scan dir
     If RawStatus($21) OR RawStatus($0F)
       Colour 3,0
@@ -245,12 +277,14 @@ End Statement
     End If
     ; Enter
     If (Joyb(1)<>0 OR Joyb(0)<>0 OR RawStatus($44)) AND bufferCursor<=0 ;RawStatus($44) OR RawStatus($73)
-      Locate 30,30.7
-      NPrint "Launching : ",slaves(cursorPage+cursorY)\name
-      pathToLaunch$=slaves(cursorPage+cursorY)\path
-      slaveToLaunch$=slaves(cursorPage+cursorY)\slave
-     launch=-1
-      SOUND 3,15
+      If folderMode=0
+        Locate 30,30.7
+        NPrint "Launching : ",slaves(cursorPage+cursorY)\name
+        pathToLaunch$=slaves(cursorPage+cursorY)\path
+        slaveToLaunch$=slaves(cursorPage+cursorY)\slave
+        launch=-1
+        SOUND 3,15
+      EndIf
     End If
 
     ; Up
@@ -272,7 +306,11 @@ End Statement
     EndIf
     ; down
     If ((RawStatus($4D) OR Joyy(1)=1 OR my>=#MOUSETRIGGER)AND bufferCursor<=0)
-      If (cursorPage+cursorY)<slavesSize
+      maxCursor=slavesSize
+      If folderMode=1
+        maxCursor=folderSize
+      EndIf
+      If (cursorPage+cursorY)<maxCursor
         cursorY=cursorY+1
         updateCursor=-1
         ; if next page
@@ -289,12 +327,16 @@ End Statement
     EndIf
     ;right
     If (RawStatus($4E) OR Joyx(1)=1 OR mx>=#MOUSETRIGGER) AND bufferCursor<=0
-      If (cursorPage+#MaxHLine+1) < slavesSize
+      maxCursor=slavesSize
+      If folderMode=1
+        maxCursor=folderSize
+      EndIf
+      If (cursorPage+#MaxHLine+1) < maxCursor
         cursorPage=cursorPage+(#MaxHLine+1)
         updatePage=-1
         updateCursor=-1
-        If (cursorPage+cursorY > slavesSize)
-          cursorY=slavesSize-cursorPage
+        If (cursorPage+cursorY > maxCursor)
+          cursorY=maxCursor-cursorPage
         EndIf
         SOUND 0,15
       Else
@@ -316,7 +358,6 @@ End Statement
     EndIf
     ; updateCursor
     If updatePage OR updatePage=-2
-    
       odd.b=((cursorPage/#MaxHLine) AND $1)
       If  odd = 1
         cursorX=40
@@ -324,7 +365,6 @@ End Statement
         cursorX=0
       EndIf 
       If (odd = 0 AND updatePage=-1) OR (odd = 1 AND updatePage=-2)
-        
         Colour 3,0
         Locate 40,30.7
         If updatePage = -1
@@ -333,15 +373,27 @@ End Statement
           currentCursorPage=previousCursorPage
         EndIf
 
-        currentColorPage=0
-        Gosub DisplayList
-        currentColorPage=1
-        If updatePage = -1
-          currentCursorPage=cursorPage
+        If folderMode=0
+          currentColorPage=0
+          Gosub DisplayList
+          currentColorPage=1
+          If updatePage = -1
+            currentCursorPage=cursorPage
+          Else
+            currentCursorPage=cursorPage-#MaxHLine-1
+          EndIf
+          Gosub DisplayList
         Else
-          currentCursorPage=cursorPage-#MaxHLine-1
-        EndIf
-        Gosub DisplayList
+          currentColorPage=0
+          Gosub DisplayFolder
+          currentColorPage=1
+          If updatePage = -1
+            currentCursorPage=cursorPage
+          Else
+            currentCursorPage=cursorPage-#MaxHLine-1
+          EndIf
+          Gosub DisplayFolder
+        EndIf   
         updatePage=2
       Else
         updatePage=0
@@ -361,7 +413,11 @@ End Statement
       Else
         Colour 2,0
         Locate previousCursorX+3,0.5+previousCursorY
-        Print slaves(previousCursorPage+previousCursorY)\name
+        If folderMode=0
+          Print slaves(previousCursorPage+previousCursorY)\name
+        Else
+          Print folders(previousCursorPage+previousCursorY)\name
+        EndIf
       EndIf
 
       Colour 1,0
@@ -369,25 +425,34 @@ End Statement
       Print ">"
 
       Locate cursorX+3,0.5+cursorY
-      Print slaves(cursorPage+cursorY)\name
+      If folderMode=0
+        Print slaves(cursorPage+cursorY)\name
+      Else
+        Print folders(cursorPage+cursorY)\name
+      EndIf
 
       updateCursor=0
     EndIf
     If blinkingBuffer < 1 
       blinking=-1-blinking
       If blinking
-       Colour 0,0
-       blinkingBuffer=#InitBufferBlinkingOff
+      Colour 0,0
+      blinkingBuffer=#InitBufferBlinkingOff
       Else
-       Colour 1,0
-       blinkingBuffer=#InitBufferBlinkingOn
+      Colour 1,0
+      blinkingBuffer=#InitBufferBlinkingOn
       EndIf
       Locate cursorX+1,0.5+cursorY
       Print ">"
 
       Locate cursorX+3,0.5+cursorY
-      Print slaves(cursorPage+cursorY)\name
+      If folderMode=0
+        Print slaves(cursorPage+cursorY)\name
+      Else
+        Print folders(cursorPage+cursorY)\name
+      EndIf
     EndIf
+
     VWAIT
  Until (RawStatus($45) OR launch)
  VWait 150
@@ -451,6 +516,7 @@ Dim List slavesin.Slave(#SLAVESDIM)
 ClearList slaves()
 ResetList slavesin()
 slavesSize=-1
+folderSize=-1
  If ReadFile (0,INVENTORY_FILE$)
     FileInput 0 
     While NOT Eof(O)
@@ -537,6 +603,7 @@ slavesSize=-1
             folders()\name=pathprev$
             folders()\indexSlave[0]=indexValue
             folders()\indexSize=1
+            folderSize=folderSize+1
           EndIf
         EndIf
         indexValue=indexValue+1
@@ -570,6 +637,32 @@ slavesSize=-1
     If i<=slavesSize
       Locate 3+xi*40,0.5+yi
       Print slaves(i)\name
+      If (yi<#MaxHLine)
+        yi=yi+1
+      Else
+        yi=0
+        xi=xi+1
+      EndIf
+    EndIf
+  EndIf
+ Next
+ RETURN
+
+ .DisplayFolder:
+ BitMapOutput 0 
+ If currentColorPage = 0
+  Colour 0,0
+ Else
+  Colour 2,0
+ EndIf
+ Locate 1,0.5
+ yi=0
+ xi=0
+ For i.w=currentCursorPage To (currentCursorPage+#MaxHLine*2+1)
+  If xi<2
+    If i<=folderSize
+      Locate 3+xi*40,0.5+yi
+      Print folders(i)\name
       If (yi<#MaxHLine)
         yi=yi+1
       Else
