@@ -17,10 +17,14 @@ DEFTYPE.w
 DELIMITER$=";"
 DELIMITERCFG$="="
 INVENTORY_FILE$="S:jl-inventory.data"
+DELIMITERFOLDER$="/"
+DELIMITERVOLUME$=":"
 
 #DEBUG=0
 
 #SLAVESDIM=255
+#FOLDERDIM=64
+#INDEXDIM=255
 
 #InitBufferCursor=4
 #InitBufferCursorPage=8
@@ -57,7 +61,16 @@ NEWTYPE.Slave
     slave$
 End NEWTYPE
 
+NEWTYPE.Folder
+    name$
+    indexSlave.w[#INDEXDIM]
+    indexSize.w
+End NEWTYPE
+
 Dim List slaves.Slave(#SLAVESDIM)
+Dim List folders.Folder(#FOLDERDIM)
+
+folderMode=0
 
 Statement listdir{dir$,curdir$}
   SHARED DELIMITER$
@@ -487,11 +500,46 @@ slavesSize=-1
     DefaultInput
     ResetList slavesin()
     ResetList slaves()
+    indexValue=0
     While(NextItem(slavesin())) 
      If (AddItem(slaves())) ; need to recopy to reconstruct index
         slaves()\name=slavesin()\name
         slaves()\path=slavesin()\path
         slaves()\slave=slavesin()\slave
+
+        ;Build Folder Index
+        pathin$=slavesin()\path
+        pathprev$=slavesin()\path
+        delimiterPos=Instr(pathin$,DELIMITERVOLUME$)
+        If delimiterPos > 0
+          pathin$=UnRight$(pathin$,delimiterPos)
+        EndIf
+        Repeat
+          delimiterPos=Instr(pathin$,DELIMITERFOLDER$)
+          If delimiterPos > 0
+            pathprev$=Left$(pathin$,delimiterPos-1)
+            pathin$=UnRight$(pathin$,delimiterPos)
+          EndIf
+        Until delimiterPos=0
+        ResetList folders()
+        inserted=0
+        While(NextItem(folders()))
+          If folders()\name = pathprev$
+            If folders()\indexSize <= #INDEXDIM
+              folders()\indexSlave[folders()\indexSize]=indexValue
+              folders()\indexSize=folders()\indexSize+1
+              inserted=-1
+            EndIf
+          EndIf
+        Wend
+        If inserted=0
+          If (AddItem(folders())) 
+            folders()\name=pathprev$
+            folders()\indexSlave[0]=indexValue
+            folders()\indexSize=1
+          EndIf
+        EndIf
+        indexValue=indexValue+1
      EndIf
     Wend
     ClearList slavesin()
