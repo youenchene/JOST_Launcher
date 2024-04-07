@@ -37,6 +37,7 @@ DELIMITERVOLUME$=":"
 #MOUSETRIGGER=6 ; On CDTV Remote it trigger 6 to 8 on speed
 
 CURRENTSCANDIR$="RAM:"
+FOLDERMODEBYDEFAULT=0
 
 AMIGA
 
@@ -70,7 +71,7 @@ End NEWTYPE
 Dim List slaves.Slave(#SLAVESDIM)
 Dim List folders.Folder(#FOLDERDIM)
 
-folderMode=0
+
 currentFolder=-1
 
 Statement listdir{dir$,curdir$}
@@ -120,6 +121,7 @@ End Statement
  previousCursorX.b=0
  previousCursorPage.w=0
  cursorPage.w=0
+ folderMode=FOLDERMODEBYDEFAULT
  
  DecodeSound 0, ?snd0
  DecodeSound 1, ?snd1
@@ -156,7 +158,12 @@ End Statement
  Line 10,241,630,241,3
  currentCursorPage=0
  currentColorPage=1
- Gosub DisplayList
+
+ If folderMode=1
+  Gosub DisplayFolder
+ Else
+  Gosub DisplayList
+ EndIf
 
  ;Copper Juice
  ColSplit 3,15,10,5,0
@@ -581,13 +588,19 @@ End
       If delimiterPos>1
         key$=Left$(l1$,delimiterPos-1)
         value$=UnRight$(l1$,delimiterPos)
-        If key$="scan_dir_1"
+        If key$="s"
           CURRENTSCANDIR$=value$
           NPrint "CurrentScanDir = ",CURRENTSCANDIR$
         EndIf
         If key$="inventory_file"
           INVENTORY_FILE$=value$
           NPrint "InventoryFile = ",INVENTORY_FILE$
+        EndIf
+        If key$="folder_mode_by_default"
+          if value$ = "true" OR value$ = "1"
+            FOLDERMODEBYDEFAULT=1
+          EndIf
+          NPrint "Folder Mode By Default = ",CURRENTSCANDIR$
         EndIf
       EndIf
     Wend
