@@ -1,0 +1,17 @@
+Short:        JOST Launcher for kickstart 1.3
+Uploader:     youen.chene@gadz.org (Youen Chéné)
+Author:       youen.chene@gadz.org (Youen Chéné)
+Type:         util/misc
+Version:      0.2
+Architecture: m68k-amigaos >= 1.3
+Distribution: Aminet
+
+Game/Demo launcher for JOST exe to run .slave for WHDLOAD compatible with 1.3 kickstart
+
+This is kind of a clone of TinyLauncher from "Master" Gibs (french will understand this stupid joke).
+
+The target setup for this launcher is a CDTV with 8Mo fast memory and BlueCDTV/BlueSCSI SD Card hard disk.
+
+You can fully control the launcher with your CDTV Remote, mouse mode or joy mode.
+
+Source : https://github.com/youenchene/JOST_Launcher
