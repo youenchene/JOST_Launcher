@@ -280,6 +280,7 @@ End Statement
     ; Enter
     If (Joyb(1)<>0 OR Joyb(0)<>0 OR RawStatus($44)) AND bufferCursor<=0 ;RawStatus($44) OR RawStatus($73)
       If folderMode=0
+        Colour 3,0
         Locate 30,30.7
         NPrint "Launching : ",slaves(cursorPage+cursorY)\name
         pathToLaunch$=slaves(cursorPage+cursorY)\path
@@ -288,7 +289,8 @@ End Statement
         SOUND 3,15
       Else
         If currentFolder = -1
-          currentFolder=cursorPage+cursorYf
+          currentFolder=cursorPage+cursorY
+          Colour 3,0
           Locate 30,30.7
           NPrint "Folder : ",folders(currentFolder)\name        
           ; erase current display
@@ -300,11 +302,38 @@ End Statement
           currentCursorPage=0
           currentColorPage=1
           Gosub DisplayFolderContent
+          updateCursor=-1
+          bufferCursor=#InitBufferCursorPage*2
         Else
-          ;launch
+          virtualCursor=cursorPage+cursorY
+          If virtualCursor= 0
+            ; .. parent / list of folder
+            ; erase current display
+            currentColorPage=0
+            Gosub DisplayFolderContent
+            currentFolder = -1
+            currentFolder = -1
+            cursorY=0
+            cursorX=0
+            cursorPage=0
+            currentCursorPage=0
+            updateCursor=-1
+            currentColorPage=1
+            Gosub DisplayFolder
+            bufferCursor=#InitBufferCursorPage*2
+          Else
+            j=folders(currentFolder)\indexSlave[virtualCursor-1]
+            Colour 3,0
+            Locate 30,30.7
+            NPrint "Launching : ",slaves(j)\name
+            pathToLaunch$=slaves(j)\path
+            slaveToLaunch$=slaves(j)\slave
+            launch=-1
+            SOUND 3,15
+          EndIf
         EndIf
       EndIf
-    End If
+    EndIf
 
     ; Up
     If ((RawStatus($4C) OR Joyy(1)=-1 OR my<=-#MOUSETRIGGER) AND bufferCursor<=0) 
@@ -327,7 +356,11 @@ End Statement
     If ((RawStatus($4D) OR Joyy(1)=1 OR my>=#MOUSETRIGGER)AND bufferCursor<=0)
       maxCursor=slavesSize
       If folderMode=1
-        maxCursor=folderSize
+        If currentFolder = -1
+         maxCursor=folderSize
+        Else
+          maxCursor=folders(currentFolder)\indexSize
+        EndIf
       EndIf
       If (cursorPage+cursorY)<maxCursor
         cursorY=cursorY+1
@@ -348,7 +381,11 @@ End Statement
     If (RawStatus($4E) OR Joyx(1)=1 OR mx>=#MOUSETRIGGER) AND bufferCursor<=0
       maxCursor=slavesSize
       If folderMode=1
-        maxCursor=folderSize
+        If currentFolder = -1
+          maxCursor=folderSize
+        Else
+          maxCursor=folders(currentFolder)\indexSize
+        EndIf
       EndIf
       If (cursorPage+#MaxHLine+1) < maxCursor
         cursorPage=cursorPage+(#MaxHLine+1)
@@ -435,7 +472,17 @@ End Statement
         If folderMode=0
           Print slaves(previousCursorPage+previousCursorY)\name
         Else
-          Print folders(previousCursorPage+previousCursorY)\name
+          If currentFolder = -1
+            Print folders(previousCursorPage+previousCursorY)\name
+          Else
+           virtualCursor=previousCursorPage+previousCursorY
+           If virtualCursor= 0
+            Print ".."
+           Else
+            j=folders(currentFolder)\indexSlave[virtualCursor-1]
+            Print slaves(j)\name
+           EndIf
+          EndIf
         EndIf
       EndIf
 
@@ -447,7 +494,17 @@ End Statement
       If folderMode=0
         Print slaves(cursorPage+cursorY)\name
       Else
-        Print folders(cursorPage+cursorY)\name
+        If currentFolder = -1
+            Print folders(cursorPage+cursorY)\name
+        Else
+           virtualCursor=cursorPage+cursorY
+           If virtualCursor= 0
+            Print ".."
+           Else
+            j=folders(currentFolder)\indexSlave[virtualCursor-1]
+            Print slaves(j)\name
+          EndIf
+        EndIf    
       EndIf
 
       updateCursor=0
@@ -455,11 +512,11 @@ End Statement
     If blinkingBuffer < 1 
       blinking=-1-blinking
       If blinking
-      Colour 0,0
-      blinkingBuffer=#InitBufferBlinkingOff
+        Colour 0,0
+        blinkingBuffer=#InitBufferBlinkingOff
       Else
-      Colour 1,0
-      blinkingBuffer=#InitBufferBlinkingOn
+        Colour 1,0
+        blinkingBuffer=#InitBufferBlinkingOn
       EndIf
       Locate cursorX+1,0.5+cursorY
       Print ">"
@@ -468,10 +525,19 @@ End Statement
       If folderMode=0
         Print slaves(cursorPage+cursorY)\name
       Else
-        Print folders(cursorPage+cursorY)\name
+         If currentFolder = -1
+            Print folders(cursorPage+cursorY)\name
+        Else
+           virtualCursor=cursorPage+cursorY
+           If virtualCursor= 0
+            Print ".."
+           Else
+            j=folders(currentFolder)\indexSlave[virtualCursor-1]
+            Print slaves(j)\name
+          EndIf
+        EndIf   
       EndIf
     EndIf
-
     VWAIT
  Until (RawStatus($45) OR launch)
  VWait 150
@@ -703,12 +769,12 @@ folderSize=-1
  Locate 1,0.5
  yi=0
  xi=0
- For i.w=cufrrentCursorPage To (currentCursorPage+#MaxHLine*2+1)
+ For i.w=currentCursorPage To (currentCursorPage+#MaxHLine*2+1)
   If xi<2
-    If i<=folderSize
+    If i<=folders(currentFolder)\indexSize
       Locate 3+xi*40,0.5+yi
       If i=0
-      Print ".."
+        Print ".."
       Else
         j=folders(currentFolder)\indexSlave[i-1]
         Print slaves(j)\name
