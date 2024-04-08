@@ -1,3 +1,4 @@
 *.uaem
 *.bb2
 *.bb2.bak
+build/*
