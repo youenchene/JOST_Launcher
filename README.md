@@ -27,6 +27,7 @@ CDTV Remote (mouse mode or joy mode) :
 - Arrow to navigate
 - A or B button To launch
 - 0 to scan your whdload games or demo folder.
+- 1 to switch to folder mode
 - Escape to quite
 
 Any joystick/joypad :
@@ -38,6 +39,7 @@ Keyboard :
 - Enter button To launch
 - S to scan your whdload games or demo folder.
 - Escape to quite
+- F to switch to folder mode
 
 # jl-config.cfg setup
 
@@ -61,6 +63,14 @@ Example:
 
 `inventory_file=Games:inventory_1.data`
 
+## folder_mode_by_default
+
+_Optional_
+
+TO define default behaviour after startup (folder mode or list mode).
+
+`folder_mode_by_default=true`
+
 
 # Dev Documentation
 
@@ -75,6 +85,13 @@ Example:
  - Gibs for his work on TinyLauncher.
 
 # Release Notes
+
+## 0.3
+ - feat: folder view mode
+ - refactor: display info
+ - feat: display current JL version
+ - feat: new optional config entry `folder_mode_by_default`
+ - fix: display refresh before and after scan
 
 ## 0.2
  - feat: Add alphabetical order on games display

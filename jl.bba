@@ -12,6 +12,9 @@
 WBStartup
 ;CloseWorkBench_
 
+
+VERSION$="0.3"
+
 DEFTYPE.w
 
 DELIMITER$=";"
@@ -38,6 +41,13 @@ DELIMITERVOLUME$=":"
 
 CURRENTSCANDIR$="RAM:"
 FOLDERMODEBYDEFAULT=0
+
+; TEXT
+INFO_HELP$="F or 1 to switch to folder view, S or 0 to scan folders"
+INFO_CONFIRM_SCAN$="Enter or Button1 to confirm / C or  Button 2  to cancel"
+INFO_SCAN$="Scanning dir : "
+INFO_LAUNCH$="Launching : "
+INFO_FOLDER$="Current Folder : "
 
 AMIGA
 
@@ -150,14 +160,14 @@ End Statement
  previousCursorY=cursorY
  previousCursorX=cursorX
 
- Locate 1,30.7
- Print "HELP : S or 0 to scan folders"
  Line 10,0,630,0,3
  Line 10,1,630,1,3
  Line 10,240,630,240,3
  Line 10,241,630,241,3
  currentCursorPage=0
  currentColorPage=1
+ currentColorInfo=0
+ currentText$=""
 
  If folderMode=1
   Gosub DisplayFolder
@@ -204,6 +214,13 @@ End Statement
 ;
 ; Looks like it's not working 
 
+ previousText$=""
+ currentColorInfo=3
+ Gosub DisplayVersion
+
+ currentText$=INFO_HELP$
+ currentColorInfo=1
+ Gosub DisplayInfo
 
  Repeat
     mx=MouseXSpeed
@@ -218,7 +235,6 @@ End Statement
     If (RawStatus($23) OR RawStatus($1D)) AND bufferCursor<=0
       folderMode=1-folderMode
       ;Redisplay
-      
       If folderMode=1 ;switch to folder
         ; erase current display
         currentColorPage=0
@@ -249,10 +265,9 @@ End Statement
     EndIf
     ; Scan dir
     If RawStatus($21) OR RawStatus($0F)
-      Colour 3,0
-      Locate 32,30.7  
-      confirmTxt$="Enter or Button1 to confirm / C, Button 2  to cancel"
-      NPrint confirmTxt$
+      currentText$=INFO_CONFIRM_SCAN$
+      currentColorInfo=3
+      Gosub DisplayInfo
       cancel.b=0
       VWAIT 50
       Repeat
@@ -265,31 +280,54 @@ End Statement
       Locate 32,30.7  
       NPrint confirmTxt$
       If cancel=0
-        Colour 3,0
-        Locate 40,30.7  
-        NPrint "Scan dir : ",CURRENTSCANDIR$
+        currentText$=INFO_SCAN$+CURRENTSCANDIR$
+        currentColorInfo=3
+        Gosub DisplayInfo
+
+        currentColorPage=0
+
+        If folderMode = 0 
+          Gosub DisplayList
+        Else
+          If currentFolder = -1
+            Gosub DisplayFolder
+          Else
+            Gosub DisplayFolderContent
+          EndIf
+        EndIf
+
         QAMIGA
         Gosub ScanDir
         Gosub LoadInventory
         VWAIT 50
         BitMapOutput 0 
         BLITZ
-        Colour 0,0
-        Locate 40,30.7  
-        NPrint "Scan dir : ",CURRENTSCANDIR$
-        currentCursorPage=cursorPage
+        currentText$=INFO_HELP$
+        currentColorInfo=1
+        Gosub DisplayInfo
+        currentFolder = -1
+        currentCursorPage=0
+        cursorY=0
         currentColorPage=1
-        Gosub DisplayList
+        If folderMode = 0 
+          Gosub DisplayList
+        Else
+          Gosub DisplayFolder
+        EndIf
       Else
        VWAIT 50
+       currentText$=INFO_HELP$
+       currentColorInfo=1
+       Gosub DisplayInfo
       EndIf
     End If
     ; Enter
     If (Joyb(1)<>0 OR Joyb(0)<>0 OR RawStatus($44)) AND bufferCursor<=0 ;RawStatus($44) OR RawStatus($73)
       If folderMode=0
-        Colour 3,0
-        Locate 30,30.7
-        NPrint "Launching : ",slaves(cursorPage+cursorY)\name
+        currentFolder=cursorPage+cursorY
+        currentText$=INFO_LAUNCH$+slaves(cursorPage+cursorY)\name 
+        currentColorInfo=3
+        Gosub DisplayInfo 
         pathToLaunch$=slaves(cursorPage+cursorY)\path
         slaveToLaunch$=slaves(cursorPage+cursorY)\slave
         launch=-1
@@ -297,9 +335,9 @@ End Statement
       Else
         If currentFolder = -1
           currentFolder=cursorPage+cursorY
-          Colour 3,0
-          Locate 30,30.7
-          NPrint "Folder : ",folders(currentFolder)\name        
+          currentText$=INFO_FOLDER$+folders(currentFolder)\name    
+          currentColorInfo=3
+          Gosub DisplayInfo 
           ; erase current display
           currentColorPage=0
           Gosub DisplayFolder
@@ -315,6 +353,10 @@ End Statement
           virtualCursor=cursorPage+cursorY
           If virtualCursor= 0
             ; .. parent / list of folder
+            currentText$=INFO_HELP$
+            currentColorInfo=1
+            Gosub DisplayInfo
+
             ; erase current display
             currentColorPage=0
             Gosub DisplayFolderContent
@@ -330,9 +372,10 @@ End Statement
             bufferCursor=#InitBufferCursorPage*2
           Else
             j=folders(currentFolder)\indexSlave[virtualCursor-1]
-            Colour 3,0
-            Locate 30,30.7
-            NPrint "Launching : ",slaves(j)\name
+            currentFolder=cursorPage+cursorY
+            currentText$=INFO_LAUNCH$+slaves(j)\name  
+            currentColorInfo=3
+            Gosub DisplayInfo
             pathToLaunch$=slaves(j)\path
             slaveToLaunch$=slaves(j)\slave
             launch=-1
@@ -588,7 +631,7 @@ End
       If delimiterPos>1
         key$=Left$(l1$,delimiterPos-1)
         value$=UnRight$(l1$,delimiterPos)
-        If key$="s"
+        If key$="scan_dir_1"
           CURRENTSCANDIR$=value$
           NPrint "CurrentScanDir = ",CURRENTSCANDIR$
         EndIf
@@ -612,7 +655,11 @@ End
 .LoadInventory:
 Dim List slavesin.Slave(#SLAVESDIM)
 ClearList slaves()
+ClearList slavesin()
+ClearList folders()
+ResetList slaves()
 ResetList slavesin()
+ResetList folders()
 slavesSize=-1
 folderSize=-1
  If ReadFile (0,INVENTORY_FILE$)
@@ -802,6 +849,22 @@ folderSize=-1
   EndIf
  Next
  RETURN
+
+.DisplayInfo:
+  Colour 0,0
+  Locate 6,30.7
+  NPrint previousText$
+  Colour currentColorInfo,0
+  Locate 6,30.7
+  NPrint currentText$
+  previousText$=currentText$
+  RETURN
+
+.DisplayVersion:
+  Colour currentColorInfo,0
+  Locate 1,30.7
+  NPrint VERSION$
+  RETURN
 
 snd0: IncBin "data/sound0.iff"
 snd1: IncBin "data/sound1.iff"
