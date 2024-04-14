@@ -9,6 +9,11 @@ You can fully control the launcher with your CDTV Remote, mouse mode or joy mode
 
 : ![screenshot](screen_v0.2.png)
 
+
+A folder mode is also available to see your games and demo by the parent folder :
+
+: ![screenshot](screen_folder_v0.3.png)
+
 # How to setup
 
 Prequisites :
