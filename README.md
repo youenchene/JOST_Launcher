@@ -101,3 +101,8 @@ TO define default behaviour after startup (folder mode or list mode).
 
 ## 0.1
  - Initial alpha version
+  
+# Dev packaging
+
+Lha command :
+`lha a jl.lha jl README.md jl-config.cfg`
